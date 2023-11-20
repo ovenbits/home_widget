@@ -38,21 +38,11 @@ void backgroundCallback(Uri? data) async {
   print(data);
 
   if (data?.host == 'titleclicked') {
-    final greetings = [
-      'Hello',
-      'Hallo',
-      'Bonjour',
-      'Hola',
-      'Ciao',
-      '哈洛',
-      '안녕하세요',
-      'xin chào'
-    ];
+    final greetings = ['Hello', 'Hallo', 'Bonjour', 'Hola', 'Ciao', '哈洛', '안녕하세요', 'xin chào'];
     final selectedGreeting = greetings[Random().nextInt(greetings.length)];
 
     await HomeWidget.saveWidgetData<String>('title', selectedGreeting);
-    await HomeWidget.updateWidget(
-        name: 'HomeWidgetExampleProvider', iOSName: 'HomeWidgetExample');
+    await HomeWidget.updateWidget(name: 'HomeWidgetExampleProvider', iOSName: 'HomeWidgetExample');
   }
 }
 
@@ -74,7 +64,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    HomeWidget.setAppGroupId('YOUR_GROUP_ID');
+    HomeWidget.setAppGroupId('group.com.homewidget.example.widgets');
     HomeWidget.registerBackgroundCallback(backgroundCallback);
   }
 
@@ -113,8 +103,7 @@ class _MyAppState extends State<MyApp> {
 
   Future _updateWidget() async {
     try {
-      return HomeWidget.updateWidget(
-          name: 'HomeWidgetExampleProvider', iOSName: 'HomeWidgetExample');
+      return HomeWidget.updateWidget(name: 'HomeWidgetExampleProvider', iOSName: 'HomeWidgetExample');
     } on PlatformException catch (exception) {
       debugPrint('Error Updating Widget. $exception');
     }
@@ -123,11 +112,8 @@ class _MyAppState extends State<MyApp> {
   Future _loadData() async {
     try {
       return Future.wait([
-        HomeWidget.getWidgetData<String>('title', defaultValue: 'Default Title')
-            .then((value) => _titleController.text = value ?? ''),
-        HomeWidget.getWidgetData<String>('message',
-                defaultValue: 'Default Message')
-            .then((value) => _messageController.text = value ?? ''),
+        HomeWidget.getWidgetData<String>('title', defaultValue: 'Default Title').then((value) => _titleController.text = value ?? ''),
+        HomeWidget.getWidgetData<String>('message', defaultValue: 'Default Message').then((value) => _messageController.text = value ?? ''),
       ]);
     } on PlatformException catch (exception) {
       debugPrint('Error Getting Data. $exception');
@@ -155,8 +141,7 @@ class _MyAppState extends State<MyApp> {
   }
 
   void _startBackgroundUpdate() {
-    Workmanager().registerPeriodicTask('1', 'widgetBackgroundUpdate',
-        frequency: Duration(minutes: 15));
+    Workmanager().registerPeriodicTask('1', 'widgetBackgroundUpdate', frequency: Duration(minutes: 15));
   }
 
   void _stopBackgroundUpdate() {
