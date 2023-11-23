@@ -10,6 +10,7 @@ import android.widget.RemoteViews
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
+import java.io.File
 
 class HomeWidgetExampleProvider : HomeWidgetProvider() {
 
@@ -37,10 +38,16 @@ class HomeWidgetExampleProvider : HomeWidgetProvider() {
                 // Show Images saved with `renderFlutterWidget`
                 val image = widgetData.getString("dashIcon", null)
                 if (image != null) {
-                 setImageViewBitmap(R.id.widget_img, BitmapFactory.decodeFile(image))
-                 setViewVisibility(R.id.widget_img, View.VISIBLE)
+                    setImageViewBitmap(R.id.widget_img, BitmapFactory.decodeFile(image))
+                    setViewVisibility(R.id.widget_img, View.VISIBLE)
                 } else {
                     setViewVisibility(R.id.widget_img, View.GONE)
+                }
+
+                val filePath = widgetData.getString("fileData", null)
+                if (filePath != null) {
+                    val text = File(filePath).readText()
+                    setTextViewText(R.id.file_text, text)
                 }
 
                 // Detect App opened via Click inside Flutter

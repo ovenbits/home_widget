@@ -39,26 +39,34 @@ struct HomeWidgetExampleEntryView : View {
     var entry: Provider.Entry
     let data = UserDefaults.init(suiteName:widgetGroupId)
     let iconPath: String?
+    let filePath: String?
     
     init(entry: Provider.Entry) {
         self.entry = entry
         iconPath = data?.string(forKey: "dashIcon")
-        
+        filePath = data?.string(forKey: "fileData")
     }
     
     var body: some View {
-        VStack.init(alignment: .leading, spacing: /*@START_MENU_TOKEN@*/nil/*@END_MENU_TOKEN@*/, content: {
-            Text(entry.title).bold().font(/*@START_MENU_TOKEN@*/.title/*@END_MENU_TOKEN@*/)
+        VStack.init(alignment: .leading, spacing: /*@START_MENU_TOKEN@*/nil/*@END_MENU_TOKEN@*/) {
+            Text(entry.title)
+                .bold()
+                .font(/*@START_MENU_TOKEN@*/.title/*@END_MENU_TOKEN@*/)
             Text(entry.message)
                 .font(.body)
                 .widgetURL(URL(string: "homeWidgetExample://message?message=\(entry.message)&homeWidget"))
-            if (iconPath != nil) {
-                Image(uiImage: UIImage(contentsOfFile: iconPath!)!).resizable()
+            if let iconPath = iconPath,
+               let image = UIImage(contentsOfFile: iconPath) {
+                Image(uiImage: image).resizable()
                     .scaledToFill()
                     .frame(width: 64, height: 64)
             }
+            if let filePath = filePath,
+               let text = try? String(contentsOfFile: filePath) {
+                Text(text)
+                    .font(.callout)
+            }
         }
-        )
     }
 }
 

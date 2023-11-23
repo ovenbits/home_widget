@@ -69,16 +69,12 @@ class HomeWidget {
 
   /// Checks if the App was initially launched via the Widget
   static Future<Uri?> initiallyLaunchedFromHomeWidget() {
-    return _channel
-        .invokeMethod<String>('initiallyLaunchedFromHomeWidget')
-        .then(_handleReceivedData);
+    return _channel.invokeMethod<String>('initiallyLaunchedFromHomeWidget').then(_handleReceivedData);
   }
 
   /// Receives Updates if App Launched via the Widget
   static Stream<Uri?> get widgetClicked {
-    return _eventChannel
-        .receiveBroadcastStream()
-        .map<Uri?>(_handleReceivedData);
+    return _eventChannel.receiveBroadcastStream().map<Uri?>(_handleReceivedData);
   }
 
   static Uri? _handleReceivedData(dynamic value) {
@@ -100,10 +96,7 @@ class HomeWidget {
   /// supported only on Android
   /// More Info on setting this up in the README
   static Future<bool?> registerBackgroundCallback(Function(Uri?) callback) {
-    final args = <dynamic>[
-      ui.PluginUtilities.getCallbackHandle(callbackDispatcher)?.toRawHandle(),
-      ui.PluginUtilities.getCallbackHandle(callback)?.toRawHandle()
-    ];
+    final args = <dynamic>[ui.PluginUtilities.getCallbackHandle(callbackDispatcher)?.toRawHandle(), ui.PluginUtilities.getCallbackHandle(callback)?.toRawHandle()];
     return _channel.invokeMethod('registerBackgroundCallback', args);
   }
 
@@ -146,8 +139,7 @@ class HomeWidget {
       renderView.prepareInitialFrame();
 
       /// setting the rootElement with the widget that has to be captured
-      final RenderObjectToWidgetElement<RenderBox> rootElement =
-          RenderObjectToWidgetAdapter<RenderBox>(
+      final RenderObjectToWidgetElement<RenderBox> rootElement = RenderObjectToWidgetAdapter<RenderBox>(
         container: repaintBoundary,
         child: Directionality(
           textDirection: TextDirection.ltr,
@@ -179,12 +171,10 @@ class HomeWidget {
       /// Flush paint
       pipelineOwner.flushPaint();
 
-      final ui.Image image =
-          await repaintBoundary.toImage(pixelRatio: pixelRatio);
+      final ui.Image image = await repaintBoundary.toImage(pixelRatio: pixelRatio);
 
       /// The raw image is converted to byte data.
-      final ByteData? byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
       try {
         late final String? directory;
@@ -222,6 +212,53 @@ class HomeWidget {
       }
     } catch (e) {
       throw Exception('Failed to render the widget: $e');
+    }
+  }
+
+  /// Saves a file to the group container.
+  ///
+  /// The resulting file path is stored in UserDefaults using the provided [fileName] option,
+  /// and can be accessed using the [key]. Ensure to include the file extension in the filename,
+  /// as no additional extension will be added.
+  static Future saveToFile(
+    Uint8List bytes, {
+    required String key,
+    required String fileName,
+  }) async {
+    try {
+      late final String? directory;
+      try {
+        // coverage:ignore-start
+        if (Platform.environment.containsKey('FLUTTER_TEST')) {
+          throw UnsupportedError(
+            'Tests should always use default Path provider for easier mocking',
+          );
+        }
+        final PathProviderFoundation provider = PathProviderFoundation();
+        directory = await provider.getContainerPath(
+          appGroupIdentifier: HomeWidget.groupId!,
+        );
+        // coverage:ignore-end
+      } on UnsupportedError catch (_) {
+        directory = (await getApplicationSupportDirectory()).path;
+      }
+      final String path = '$directory/home_widget/$fileName';
+      final File file = File(path);
+      if (!await file.exists()) {
+        await file.create(recursive: true);
+      }
+
+      await file.writeAsBytes(bytes);
+
+      // Save the filename to UserDefaults if a key was provided
+      _channel.invokeMethod<bool>('saveWidgetData', {
+        'id': key,
+        'data': path,
+      });
+
+      return path;
+    } catch (e) {
+      throw Exception('Failed to save screenshot to app group container: $e');
     }
   }
 }

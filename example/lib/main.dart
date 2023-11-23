@@ -60,6 +60,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  String? _fileText;
 
   @override
   void initState() {
@@ -148,6 +149,22 @@ class _MyAppState extends State<MyApp> {
     Workmanager().cancelByUniqueName('1');
   }
 
+  void _saveFile() {
+    final timeString = DateTime.now().microsecondsSinceEpoch.toString();
+    Uint8List bytes = Uint8List.fromList(timeString.codeUnits);
+    HomeWidget.saveToFile(bytes, key: 'fileData', fileName: 'example.txt');
+  }
+
+  void _loadFile() async {
+    final String? path = await HomeWidget.getWidgetData('fileData');
+    if (path case String path) {
+      final text = await File(path).readAsString();
+      setState(() {
+        _fileText = text;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -190,7 +207,16 @@ class _MyAppState extends State<MyApp> {
               ElevatedButton(
                 onPressed: _stopBackgroundUpdate,
                 child: Text('Stop updating in background'),
-              )
+              ),
+            ElevatedButton(
+              onPressed: _saveFile,
+              child: Text('Save file'),
+            ),
+            ElevatedButton(
+              onPressed: _loadFile,
+              child: Text('Load file'),
+            ),
+            if (_fileText case String text) Text(text)
           ],
         ),
       ),
