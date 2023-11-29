@@ -52,8 +52,7 @@ void main() {
   });
 
   tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel, null);
   });
 
   test('getWidgetData', () async {
@@ -137,10 +136,8 @@ void main() {
   });
 
   test('Register Background Callback passes Handles', () async {
-    final dispatcherHandle =
-        PluginUtilities.getCallbackHandle(callbackDispatcher)?.toRawHandle();
-    final callbackHandle =
-        PluginUtilities.getCallbackHandle(testCallback)?.toRawHandle();
+    final dispatcherHandle = PluginUtilities.getCallbackHandle(callbackDispatcher)?.toRawHandle();
+    final callbackHandle = PluginUtilities.getCallbackHandle(testCallback)?.toRawHandle();
 
     expect(await HomeWidget.registerBackgroundCallback(testCallback), true);
 
@@ -152,13 +149,11 @@ void main() {
 
   group('Widget Clicked', () {
     test('Send Uris to Stream', () async {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMessageHandler(updateChannel.name,
-              // ignore: body_might_complete_normally_nullable
-              (message) async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMessageHandler(updateChannel.name,
+          // ignore: body_might_complete_normally_nullable
+          (message) async {
         emitEvent(
-          updateChannel.codec
-              .encodeSuccessEnvelope('homeWidget://homeWidgetTest'),
+          updateChannel.codec.encodeSuccessEnvelope('homeWidget://homeWidgetTest'),
         );
         emitEvent(updateChannel.codec.encodeSuccessEnvelope(2));
         emitEvent(updateChannel.codec.encodeSuccessEnvelope(null));
@@ -208,8 +203,7 @@ void main() {
 
     setUp(() {
       final pathProvider = MockPathProvider();
-      when(() => pathProvider.getApplicationSupportPath())
-          .thenAnswer((invocation) async => directory.path);
+      when(() => pathProvider.getApplicationSupportPath()).thenAnswer((invocation) async => directory.path);
       PathProviderPlatform.instance = pathProvider;
     });
 
@@ -218,11 +212,9 @@ void main() {
       final file = MockFile();
 
       when(() => file.exists()).thenAnswer((invocation) async => false);
-      when(() => file.create(recursive: true))
-          .thenAnswer((invocation) async => file);
+      when(() => file.create(recursive: true)).thenAnswer((invocation) async => file);
       when(() => file.writeAsBytes(any())).thenAnswer((invocation) async {
-        byteCompleter
-            .complete(Uint8List.fromList(invocation.positionalArguments.first));
+        byteCompleter.complete(Uint8List.fromList(invocation.positionalArguments.first));
         return file;
       });
 
@@ -232,6 +224,7 @@ void main() {
             final path = await HomeWidget.renderFlutterWidget(
               targetWidget,
               key: 'screenshot',
+              fileNameWithoutExtension: 'screenshot',
               logicalSize: size,
             );
             final expectedPath = '${directory.path}/home_widget/screenshot.png';
@@ -274,6 +267,7 @@ void main() {
                   Builder(builder: (_) => const SizedBox()),
                   logicalSize: Size.zero,
                   key: 'screenshot',
+                  fileNameWithoutExtension: 'screenshot',
                 ),
                 throwsException,
               );
@@ -291,10 +285,8 @@ void main() {
       final file = MockFile();
 
       when(() => file.exists()).thenAnswer((invocation) async => false);
-      when(() => file.create(recursive: true))
-          .thenAnswer((invocation) async => file);
-      when(() => file.writeAsBytes(any()))
-          .thenAnswer((invocation) => Future.error('Error'));
+      when(() => file.create(recursive: true)).thenAnswer((invocation) async => file);
+      when(() => file.writeAsBytes(any())).thenAnswer((invocation) => Future.error('Error'));
 
       await IOOverrides.runZoned(
         () async {
@@ -304,6 +296,7 @@ void main() {
                 targetWidget,
                 logicalSize: size,
                 key: 'screenshot',
+                fileNameWithoutExtension: 'screenshot',
               ),
               throwsException,
             );
@@ -319,8 +312,7 @@ void main() {
 }
 
 void emitEvent(ByteData? event) {
-  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-      .handlePlatformMessage(
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
     updateChannel.name,
     event,
     (ByteData? reply) {},

@@ -94,6 +94,7 @@ class _MyAppState extends State<MyApp> {
             size: 200,
           ),
           logicalSize: Size(200, 200),
+          fileNameWithoutExtension: 'dashIcon',
           key: 'dashIcon',
         ),
       ]);
@@ -152,7 +153,7 @@ class _MyAppState extends State<MyApp> {
   void _saveFile() {
     final timeString = DateTime.now().microsecondsSinceEpoch.toString();
     Uint8List bytes = Uint8List.fromList(timeString.codeUnits);
-    HomeWidget.saveToFile(bytes, key: 'fileData', fileName: 'example.txt');
+    HomeWidget.saveToFile(bytes, key: 'fileData', fileNameWithExtension: 'example.txt');
   }
 
   void _loadFile() async {

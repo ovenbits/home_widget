@@ -100,13 +100,19 @@ class HomeWidget {
     return _channel.invokeMethod('registerBackgroundCallback', args);
   }
 
-  /// Generate a screenshot based on a given widget.
-  /// This method renders the widget to an image (png) file with the provided filename.
-  /// The png file is saved to the App Group container and the full path is returned as a string.
-  /// The filename is saved to UserDefaults using the provided key.
-  static Future renderFlutterWidget(
+  /// Generates a screenshot based on a given widget.
+  ///
+  /// Renders the widget to a PNG image file with the provided [fileNameWithoutExtension].
+  /// The PNG file is saved to the App Group container, and the full path is returned as a string.
+  /// Use [fileNameWithoutExtension] as the name for the created file. Ensure to NOT include the file extension,
+  /// because .png extension will be added automatically.
+  /// If [key] is provided, the file path is also saved to the group UserDefaults for [key].
+  ///
+  /// Returns the path where the file was saved.
+  static Future<String> renderFlutterWidget(
     Widget widget, {
-    required String key,
+    required String fileNameWithoutExtension,
+    String? key,
     Size logicalSize = const Size(200, 200),
     double pixelRatio = 1,
   }) async {
@@ -193,18 +199,20 @@ class HomeWidget {
         } on UnsupportedError catch (_) {
           directory = (await getApplicationSupportDirectory()).path;
         }
-        final String path = '$directory/home_widget/$key.png';
+        final String path = '$directory/home_widget/$fileNameWithoutExtension.png';
         final File file = File(path);
         if (!await file.exists()) {
           await file.create(recursive: true);
         }
         await file.writeAsBytes(byteData!.buffer.asUint8List());
 
-        // Save the filename to UserDefaults if a key was provided
-        _channel.invokeMethod<bool>('saveWidgetData', {
-          'id': key,
-          'data': path,
-        });
+        // Save the file path to UserDefaults if a key was provided
+        if (key case String key) {
+          _channel.invokeMethod<bool>('saveWidgetData', {
+            'id': key,
+            'data': path,
+          });
+        }
 
         return path;
       } catch (e) {
@@ -217,13 +225,15 @@ class HomeWidget {
 
   /// Saves a file to the group container.
   ///
-  /// The resulting file path is stored in UserDefaults using the provided [fileName] option,
-  /// and can be accessed using the [key]. Ensure to include the file extension in the filename,
-  /// as no additional extension will be added.
-  static Future saveToFile(
+  /// Uses the specified [fileNameWithExtension] for the new file.
+  /// Ensure to include the file extension in the file name, as no additional extension will be added.
+  /// If [key] is provided, full path is also saved to the group UserDefaults with the specified [key].
+  ///
+  /// Returns the path where the file was saved.
+  static Future<String> saveToFile(
     Uint8List bytes, {
-    required String key,
-    required String fileName,
+    required String fileNameWithExtension,
+    String? key,
   }) async {
     try {
       late final String? directory;
@@ -242,7 +252,7 @@ class HomeWidget {
       } on UnsupportedError catch (_) {
         directory = (await getApplicationSupportDirectory()).path;
       }
-      final String path = '$directory/home_widget/$fileName';
+      final String path = '$directory/home_widget/$fileNameWithExtension';
       final File file = File(path);
       if (!await file.exists()) {
         await file.create(recursive: true);
@@ -250,11 +260,13 @@ class HomeWidget {
 
       await file.writeAsBytes(bytes);
 
-      // Save the filename to UserDefaults if a key was provided
-      _channel.invokeMethod<bool>('saveWidgetData', {
-        'id': key,
-        'data': path,
-      });
+      // Save the file path to UserDefaults if a key was provided
+      if (key case String key) {
+        _channel.invokeMethod<bool>('saveWidgetData', {
+          'id': key,
+          'data': path,
+        });
+      }
 
       return path;
     } catch (e) {
