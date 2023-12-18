@@ -183,23 +183,8 @@ class HomeWidget {
       final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
       try {
-        late final String? directory;
-        try {
-          // coverage:ignore-start
-          if (Platform.environment.containsKey('FLUTTER_TEST')) {
-            throw UnsupportedError(
-              'Tests should always use default Path provider for easier mocking',
-            );
-          }
-          final PathProviderFoundation provider = PathProviderFoundation();
-          directory = await provider.getContainerPath(
-            appGroupIdentifier: HomeWidget.groupId!,
-          );
-          // coverage:ignore-end
-        } on UnsupportedError catch (_) {
-          directory = (await getApplicationSupportDirectory()).path;
-        }
-        final String path = '$directory/home_widget/$fileNameWithoutExtension.png';
+        final String directory = await getHomeWidgetDirectory();
+        final String path = '$directory/$fileNameWithoutExtension.png';
         final File file = File(path);
         if (!await file.exists()) {
           await file.create(recursive: true);
@@ -236,23 +221,8 @@ class HomeWidget {
     String? key,
   }) async {
     try {
-      late final String? directory;
-      try {
-        // coverage:ignore-start
-        if (Platform.environment.containsKey('FLUTTER_TEST')) {
-          throw UnsupportedError(
-            'Tests should always use default Path provider for easier mocking',
-          );
-        }
-        final PathProviderFoundation provider = PathProviderFoundation();
-        directory = await provider.getContainerPath(
-          appGroupIdentifier: HomeWidget.groupId!,
-        );
-        // coverage:ignore-end
-      } on UnsupportedError catch (_) {
-        directory = (await getApplicationSupportDirectory()).path;
-      }
-      final String path = '$directory/home_widget/$fileNameWithExtension';
+      final String directory = await getHomeWidgetDirectory();
+      final String path = '$directory/$fileNameWithExtension';
       final File file = File(path);
       if (!await file.exists()) {
         await file.create(recursive: true);
@@ -272,5 +242,24 @@ class HomeWidget {
     } catch (e) {
       throw Exception('Failed to save screenshot to app group container: $e');
     }
+  }
+
+  /// Returns the home screen widget directory to share files from the app to the widget and vice versa.
+  static Future<String> getHomeWidgetDirectory() async {
+    late final String? directory;
+    try {
+      // coverage:ignore-start
+      if (Platform.environment.containsKey('FLUTTER_TEST')) {
+        throw UnsupportedError(
+          'Tests should always use default Path provider for easier mocking',
+        );
+      }
+      final PathProviderFoundation provider = PathProviderFoundation();
+      directory = (await provider.getContainerPath(appGroupIdentifier: HomeWidget.groupId!)) ?? (await getApplicationSupportDirectory()).path;
+      // coverage:ignore-end
+    } on UnsupportedError catch (_) {
+      directory = (await getApplicationSupportDirectory()).path;
+    }
+    return '$directory/home_widget';
   }
 }
