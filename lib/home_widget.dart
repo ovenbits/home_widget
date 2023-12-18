@@ -4,9 +4,9 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:home_widget/home_widget_callback_dispatcher.dart';
-import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path_provider_foundation/path_provider_foundation.dart';
 
@@ -93,10 +93,24 @@ class HomeWidget {
   }
 
   /// Register a callback that gets called when clicked on a specific View in a HomeWidget
-  /// supported only on Android
+  /// This enables having Interactive Widgets that can call Dart Code
   /// More Info on setting this up in the README
-  static Future<bool?> registerBackgroundCallback(Function(Uri?) callback) {
-    final args = <dynamic>[ui.PluginUtilities.getCallbackHandle(callbackDispatcher)?.toRawHandle(), ui.PluginUtilities.getCallbackHandle(callback)?.toRawHandle()];
+  @Deprecated('Use `registerInteractivityCallback` instead')
+  static Future<bool?> registerBackgroundCallback(
+    FutureOr<void> Function(Uri?) callback,
+  ) =>
+      registerInteractivityCallback(callback);
+
+  /// Register a callback that gets called when clicked on a specific View in a HomeWidget
+  /// This enables having Interactive Widgets that can call Dart Code
+  /// More Info on setting this up in the README
+  static Future<bool?> registerInteractivityCallback(
+    FutureOr<void> Function(Uri?) callback,
+  ) {
+    final args = <dynamic>[
+      ui.PluginUtilities.getCallbackHandle(callbackDispatcher)?.toRawHandle(),
+      ui.PluginUtilities.getCallbackHandle(callback)?.toRawHandle(),
+    ];
     return _channel.invokeMethod('registerBackgroundCallback', args);
   }
 
@@ -183,8 +197,24 @@ class HomeWidget {
       final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
       try {
-        final String directory = await getHomeWidgetDirectory();
-        final String path = '$directory/$fileNameWithoutExtension.png';
+        late final String? directory;
+
+        // coverage:ignore-start
+        if (Platform.isIOS) {
+          final PathProviderFoundation provider = PathProviderFoundation();
+          assert(
+            HomeWidget.groupId != null,
+            'No groupId defined. Did you forget to call `HomeWidget.setAppGroupId`',
+          );
+          directory = await provider.getContainerPath(
+            appGroupIdentifier: HomeWidget.groupId!,
+          );
+        } else {
+          // coverage:ignore-end
+          directory = (await getApplicationSupportDirectory()).path;
+        }
+
+        final String path = '$directory/home_widget/$key.png';
         final File file = File(path);
         if (!await file.exists()) {
           await file.create(recursive: true);
