@@ -20,7 +20,7 @@ In order to work correctly there needs to be some platform specific setup. Check
 <details><summary>iOS</summary>
 
 ### Add a Widget to your App in Xcode
-Add a widget extension by going `File > New > Target > Widget Extension`
+Add a widget extension by going <kbd>File</kbd> > <kbd>New</kbd> > <kbd>Target</kbd> > <kbd>Widget Extension</kbd>
 
 ![Widget Extension](https://github.com/ABausG/home_widget/blob/main/.github/assets/widget_extension.png?raw=true)
 
@@ -30,19 +30,18 @@ You need to add a groupId to the App and the Widget Extension
 
 **Note: in order to add groupIds you need a paid Apple Developer Account**
 
-Go to your [Apple Developer Account](https://developer.apple.com/account/resources/identifiers/list/applicationGroup) and add a new group
-Add this group to you Runner and the Widget Extension inside XCode `Signing & Capabilities > App Groups > +`
+Go to your [Apple Developer Account](https://developer.apple.com/account/resources/identifiers/list/applicationGroup) and add a new group.
+Add this group to your Runner and the Widget Extension inside XCode: <kbd>Signing & Capabilities</kbd> > <kbd>App Groups</kbd> > <kbd>+</kbd>.
+(To swap between your App, and the Extension change the Target)
 
 ![Build Targets](https://github.com/ABausG/home_widget/blob/main/.github/assets/target.png?raw=true)
-
-(To swap between your App, and the Extension change the Target)
 
 ### Sync CFBundleVersion (optional)
 This step is optional, this will sync the widget extension build version with your app version, so you don't get warnings of mismatch version from App Store Connect when uploading your app.
 
 ![Build Phases](https://github.com/ABausG/home_widget/blob/main/.github/assets/build_phases.png?raw=true)
 
-In your Runner (app) target go to `Build Phases > + > New Run Script Phase` and add the following script:
+In your Runner (app) target go to <kbd>Build Phases</kbd> > <kbd>+</kbd> > <kbd>New Run Script Phase</kbd> and add the following script:
 ```bash
 generatedPath="$SRCROOT/Flutter/Generated.xcconfig"
 versionNumber=$(grep FLUTTER_BUILD_NAME $generatedPath | cut -d '=' -f2)
@@ -63,7 +62,86 @@ let data = UserDefaults.init(suiteName:"YOUR_GROUP_ID")
 ```
 </details>
 
-<details><summary>Android</summary>
+<details><summary>Android (Jetpack Glance)</summary>
+
+### Add Jetpack Glance as a dependency to you app's Gradle File
+```groovy
+implementation 'androidx.glance:glance-appwidget:LATEST-VERSION'
+```
+
+### Create Widget Configuration into `android/app/src/main/res/xml`
+```xml
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="10000">
+</appwidget-provider>
+```
+
+### Add WidgetReceiver to AndroidManifest
+```xml
+<receiver android:name=".glance.HomeWidgetReceiver"
+          android:exported="true">
+   <intent-filter>
+      <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+   </intent-filter>
+   <meta-data
+           android:name="android.appwidget.provider"
+           android:resource="@xml/home_widget_glance_example" />
+</receiver>
+```
+
+### Create WidgetReceiver
+
+To get automatic Updates you should extend from [HomeWidgetGlanceWidgetReceiver](android/src/main/kotlin/es/antonborri/home_widget/HomeWidgetGlanceWidgetReceiver.kt)
+
+Your Receiver should then look like this
+
+```kotlin
+package es.antonborri.home_widget_example.glance
+
+import HomeWidgetGlanceWidgetReceiver
+
+class HomeWidgetReceiver : HomeWidgetGlanceWidgetReceiver<HomeWidgetGlanceAppWidget>() {
+    override val glanceAppWidget = HomeWidgetGlanceAppWidget()
+}
+```
+
+### Build Your AppWidget
+
+```kotlin
+
+class HomeWidgetGlanceAppWidget : GlanceAppWidget() {
+
+    /**
+     * Needed for Updating
+     */
+    override val stateDefinition = HomeWidgetGlanceStateDefinition()
+
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent {
+            GlanceContent(context, currentState())
+        }
+    }
+
+    @Composable
+    private fun GlanceContent(context: Context, currentState: HomeWidgetGlanceState) {
+        // Use data to access the data you save with 
+        val data = currentState.preferences
+       
+
+        // Build Your Composable Widget
+       Column(
+         ...
+    }
+
+```
+
+</details>
+
+<details><summary>Android (XML)</summary>
 
 ### Create Widget Layout inside `android/app/src/main/res/layout`
 
@@ -110,8 +188,10 @@ For more Information on how to create and configure Android Widgets, check out [
 
 ### Setup
 <details><summary>iOS</summary>
+    
 For iOS, you need to call `HomeWidget.setAppGroupId('YOUR_GROUP_ID');`
 Without this you won't be able to share data between your App and the Widget and calls to `saveWidgetData` and `getWidgetData` will return an error
+
 </details>
 
 ### Save Data
@@ -128,12 +208,37 @@ HomeWidget.updateWidget(
 );
 ```
 
-The name for Android will be chosen by checking `qualifiedAndroidName`, falling back to `<packageName>.androidName` and if that was not provided it 
-will fallback to `<packageName>.name`.
+The name for Android will be chosen by checking `qualifiedAndroidName`, falling back to `<packageName>.androidName` and if that was not provided it will fallback to `<packageName>.name`.
 This Name needs to be equal to the Classname of the [WidgetProvider](#Write-your-Widget)
 
 The name for iOS will be chosen by checking `iOSName` if that was not provided it will fallback to `name`.
 This name needs to be equal to the Kind specified in you Widget
+
+#### Android (Jetpack Glance)
+
+If you followed the guide and use `HomeWidgetGlanceWidgetReceiver` as your Receiver, `HomeWidgetGlanceStateDefinition` as the AppWidgetStateDefinition, `currentState()` in the composable view and `currentState.preferences` for data access. No further work is necessary.
+
+#### Android (XML)
+Calling `HomeWidget.updateWidget` only notifies the specified provider.
+To update widgets using this provider,
+update them from the provider like this:
+
+```kotlin
+class HomeWidgetExampleProvider : HomeWidgetProvider() {
+
+    override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray, widgetData: SharedPreferences) {
+        appWidgetIds.forEach { widgetId ->
+            val views = RemoteViews(context.packageName, R.layout.example_layout).apply {
+                // ...
+            }
+
+            // Update widget.
+            appWidgetManager.updateAppWidget(widgetId, views)
+        }
+    }
+}
+```
+
 
 ### Retrieve Data
 To retrieve the current Data saved in the Widget call `HomeWidget.getWidgetData<String>('id', defaultValue: data)`
@@ -163,13 +268,13 @@ Android and iOS (starting with iOS 17) allow widgets to have interactive Element
 <details><summary>iOS</summary>
 
 1. Adjust your Podfile to add `home_widget` as a dependency to your WidgetExtension
-   ```
+   ```rb
    target 'YourWidgetExtension' do
       use_frameworks!
       use_modular_headers!
 
       pod 'home_widget', :path => '.symlinks/plugins/home_widget/ios'
-end
+   end
    ```
 2. To be able to use plugins with the Background Callback add this to your AppDelegate's `application` function
    ```swift
@@ -232,9 +337,42 @@ end
    This code tells the system to always perform the Intent in the App and not in a process attached to the Widget. Note however that this will start your Flutter App using the normal main entrypoint meaning your full app might be run in the background. To counter this you should add checks in the very first Widget you build inside `runApp` to only perform necessary calls/setups while the App is launched in the background
 </details>
 
-<details><summary>Android</summary>
 
-1. Add the necessary Receiver and Service to you `AndroidManifest.xml` file
+<details><summary>Android Jetpack Glance</summary>
+
+1. Add the necessary Receiver and Service to your `AndroidManifest.xml` file
+    ```
+   <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"  android:exported="true">
+        <intent-filter>
+            <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+        </intent-filter>
+    </receiver>
+    <service android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
+        android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true"/>
+   ```
+2. Create a custom Action
+   ```kotlin
+   class InteractiveAction : ActionCallback {
+        override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+         val backgroundIntent = HomeWidgetBackgroundIntent.getBroadcast(context, Uri.parse("homeWidgetExample://titleClicked"))
+         backgroundIntent.send()
+       }
+   }
+   ```
+3. Add the Action as a modifier to a view
+   ```kotlin
+   Text(
+        title,
+        style = TextStyle(fontSize = 36.sp, fontWeight = FontWeight.Bold),
+        modifier = GlanceModifier.clickable(onClick = actionRunCallback<InteractiveAction>()),
+   )
+   ```
+
+</details>
+
+<details><summary>Android XML </summary>
+
+1. Add the necessary Receiver and Service to your `AndroidManifest.xml` file
     ```
    <receiver android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"  android:exported="true">
         <intent-filter>
@@ -344,7 +482,25 @@ To retrieve the image and display it in a widget, you can use the following Swif
 <img width="522" alt="Screenshot 2023-06-07 at 12 57 28 PM" src="https://github.com/ABausG/home_widget/assets/21065911/f7dcdea0-605a-4662-a03a-158831a4e946">
 </details>
 
-<details><summary>Android</summary>
+<details><summary>Android (Jetpack Glance)</summary>
+
+```kotlin
+// Access data
+val data = currentState.preferences
+
+// Get Path
+val imagePath = data.getString("lineChart", null)
+
+// Add Image to Compose Tree
+imagePath?.let {
+   val bitmap = BitmapFactory.decodeFile(it)
+   Image(androidx.glance.ImageProvider(bitmap), null)
+}
+```
+
+</details>
+
+<details><summary>Android (XML)</summary>
 
 1. Add an image UI element to your xml file:
     ```xml
@@ -415,7 +571,33 @@ Text(entry.message)
 In order to only detect Widget Links you need to add the queryParameter`homeWidget` to the URL
 </details>
 
-<details><summary>Android</summary>
+<details><summary>Android Jetpack Glance</summary>
+
+Add an `IntentFilter` to the `Activity` Section in your `AndroidManifest`
+```
+<intent-filter>
+    <action android:name="es.antonborri.home_widget.action.LAUNCH" />
+</intent-filter>
+```
+
+Add the following modifier to your Widget (import from HomeWidget)
+```kotlin
+Text(
+   message,
+   style = TextStyle(fontSize = 18.sp),
+   modifier = GlanceModifier.clickable(
+     onClick = actionStartActivity<MainActivity>(
+       context,
+       Uri.parse("homeWidgetExample://message?message=$message")
+     )
+   )
+)
+```
+
+</details>
+
+<details><summary>Android XML</summary>
+
 Add an `IntentFilter` to the `Activity` Section in your `AndroidManifest`
 ```
 <intent-filter>
@@ -431,6 +613,7 @@ val pendingIntentWithData = HomeWidgetLaunchIntent.getActivity(
         Uri.parse("homeWidgetExample://message?message=$message"))
 setOnClickPendingIntent(R.id.widget_message, pendingIntentWithData)
 ```
+
 </details>
 
 ### Background Update
@@ -446,6 +629,23 @@ WorkmanagerPlugin.setPluginRegistrantCallback { registry in
 ```
 to [AppDelegate.swift](example/ios/Runner/AppDelegate.swift)
 
+### Request Pin Widget
+Requests to Pin (Add) the Widget to the users HomeScreen by pinning it to the users HomeScreen.
+
+```dart
+HomeWidget.requestPinWidget(
+    name: 'HomeWidgetExampleProvider',
+    androidName: 'HomeWidgetExampleProvider',
+    qualifiedAndroidName: 'com.example.app.HomeWidgetExampleProvider',
+);
+```
+
+This method is only supported on [Android, API 26+](https://developer.android.com/develop/ui/views/appwidgets/configuration#pin).
+If you want to check whether it is supported on current device, use:
+
+```dart
+HomeWidget.isRequestPinWidgetSupported();
+```
 
 ---
 

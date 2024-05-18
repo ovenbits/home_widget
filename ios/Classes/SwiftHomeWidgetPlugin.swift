@@ -20,6 +20,12 @@ public class SwiftHomeWidgetPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
   private let notInitializedError = FlutterError(
     code: "-7", message: "AppGroupId not set. Call setAppGroupId first", details: nil)
 
+  private static func isRunningInAppExtension() -> Bool {
+    let bundleURL = Bundle.main.bundleURL
+    let bundlePathExtension = bundleURL.pathExtension
+    return bundlePathExtension == "appex"
+  }
+
   public static func register(with registrar: FlutterPluginRegistrar) {
     let instance = SwiftHomeWidgetPlugin()
 
@@ -30,7 +36,14 @@ public class SwiftHomeWidgetPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
       name: "home_widget/updates", binaryMessenger: registrar.messenger())
     eventChannel.setStreamHandler(instance)
 
-    registrar.addApplicationDelegate(instance)
+    guard isRunningInAppExtension() == false else {
+      return
+    }
+
+    let selector = NSSelectorFromString("addApplicationDelegate:")
+    if registrar.responds(to: selector) {
+      registrar.perform(selector, with: instance)
+    }
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -63,7 +76,11 @@ public class SwiftHomeWidgetPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
       {
         let preferences = UserDefaults.init(suiteName: SwiftHomeWidgetPlugin.groupId)
         if data != nil {
-          preferences?.setValue(data, forKey: id)
+          if let binaryData = data as? FlutterStandardTypedData {
+            preferences?.setValue(Data(binaryData.data), forKey: id)
+          } else {
+            preferences?.setValue(data, forKey: id)
+          }
         } else {
           preferences?.removeObject(forKey: id)
         }
@@ -149,7 +166,31 @@ public class SwiftHomeWidgetPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
               "Interactivity is only available on iOS 17.0",
             details: nil))
       }
-
+    } else if call.method == "isRequestPinWidgetSupported" {
+      result(false)
+    } else if call.method == "requestPinWidget" {
+      result(nil)
+    } else if call.method == "getInstalledWidgets" {
+      if #available(iOS 14.0, *) {
+        #if arch(arm64) || arch(i386) || arch(x86_64)
+          WidgetCenter.shared.getCurrentConfigurations { result2 in
+            switch result2 {
+            case let .success(widgets):
+              let widgetInfoList = widgets.map { widget in
+                  return ["family": "\(widget.family)", "kind": widget.kind]
+              }
+              result(widgetInfoList)
+            case let .failure(error):
+              result(FlutterError(code: "-8", message: "Failed to get installed widgets: \(error.localizedDescription)", details: nil))
+            }
+          }
+        #endif
+      } else {
+        result(
+          FlutterError(
+            code: "-4", message: "Widgets are only available on iOS 14.0 and above", details: nil)
+        )
+      }
     } else {
       result(FlutterMethodNotImplemented)
     }

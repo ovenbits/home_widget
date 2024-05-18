@@ -23,6 +23,7 @@ void main() {
       'boolKey': true,
       'floatingNumberKey': 12.1,
       'nullValueKey': null,
+      'uint8ListKey': Uint8List.fromList([]),
     };
 
     const defaultValue = MapEntry('defaultKey', 'defaultValue');
@@ -86,7 +87,7 @@ void main() {
         expect(retrievedData, isNull);
       });
 
-      group('Register Backgorund Callback', () {
+      group('Register Background Callback', () {
         testWidgets('RegisterBackgroundCallback completes without error',
             (tester) async {
           final deviceInfo = await DeviceInfoPlugin().iosInfo;
@@ -114,6 +115,11 @@ void main() {
         });
       });
     });
+  });
+
+  testWidgets('Get Installed Widgets returns empty list', (tester) async {
+    final retrievedData = await HomeWidget.getInstalledWidgets();
+    expect(retrievedData, isEmpty);
   });
 }
 
