@@ -149,6 +149,7 @@ class HomeWidget {
   static Future renderFlutterWidget(
     Widget widget, {
     required String key,
+    required String fileNameWithoutExtension,
     Size logicalSize = const Size(200, 200),
     double pixelRatio = 1,
   }) async {
@@ -169,7 +170,7 @@ class HomeWidget {
           child: repaintBoundary,
         ),
         configuration: ViewConfiguration(
-          size: logicalSize,
+          logicalConstraints: BoxConstraints.tight(logicalSize),
           devicePixelRatio: 1.0,
         ),
       );
@@ -219,24 +220,9 @@ class HomeWidget {
       final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
       try {
-        late final String? directory;
+        final String directory = await getHomeWidgetDirectory();
+        final String path = '$directory/$fileNameWithoutExtension.png';
 
-        // coverage:ignore-start
-        if (Platform.isIOS) {
-          final PathProviderFoundation provider = PathProviderFoundation();
-          assert(
-            HomeWidget.groupId != null,
-            'No groupId defined. Did you forget to call `HomeWidget.setAppGroupId`',
-          );
-          directory = await provider.getContainerPath(
-            appGroupIdentifier: HomeWidget.groupId!,
-          );
-        } else {
-          // coverage:ignore-end
-          directory = (await getApplicationSupportDirectory()).path;
-        }
-
-        final String path = '$directory/home_widget/$key.png';
         final File file = File(path);
         if (!await file.exists()) {
           await file.create(recursive: true);
@@ -271,5 +257,63 @@ class HomeWidget {
             )
             .toList() ??
         [];
+  }
+
+  /// Saves a file to the group container.
+  ///
+  /// Uses the specified [fileNameWithExtension] for the new file.
+  /// Ensure to include the file extension in the file name, as no additional extension will be added.
+  /// If [key] is provided, full path is also saved to the group UserDefaults with the specified [key].
+  ///
+  /// Returns the path where the file was saved.
+  static Future<String> saveToFile(
+    Uint8List bytes, {
+    required String fileNameWithExtension,
+    String? key,
+  }) async {
+    try {
+      final String directory = await getHomeWidgetDirectory();
+      final String path = '$directory/$fileNameWithExtension';
+      final File file = File(path);
+      if (!await file.exists()) {
+        await file.create(recursive: true);
+      }
+
+      await file.writeAsBytes(bytes);
+
+      // Save the file path to UserDefaults if a key was provided
+      if (key case String key) {
+        _channel.invokeMethod<bool>('saveWidgetData', {
+          'id': key,
+          'data': path,
+        });
+      }
+
+      return path;
+    } catch (e) {
+      throw Exception('Failed to save screenshot to app group container: $e');
+    }
+  }
+
+  /// Returns the home screen widget directory to share files from the app to the widget and vice versa.
+  static Future<String> getHomeWidgetDirectory() async {
+    late final String? directory;
+    try {
+      // coverage:ignore-start
+      if (Platform.isIOS) {
+        final PathProviderFoundation provider = PathProviderFoundation();
+        assert(
+          HomeWidget.groupId != null,
+          'No groupId defined. Did you forget to call `HomeWidget.setAppGroupId`',
+        );
+        directory = await provider.getContainerPath(appGroupIdentifier: HomeWidget.groupId!) ?? (await getApplicationSupportDirectory()).path;
+      } else {
+        // coverage:ignore-end
+        directory = (await getApplicationSupportDirectory()).path;
+      }
+    } on UnsupportedError catch (_) {
+      directory = (await getApplicationSupportDirectory()).path;
+    }
+    return '$directory/home_widget';
   }
 }
