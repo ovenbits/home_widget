@@ -14,8 +14,15 @@ let package = Package(
     ],
     targets: [
         .target(
+            name: "home_widget_swift",
+            dependencies: [
+                .product(name: "FlutterFramework", package: "FlutterFramework")
+            ]
+        ),
+        .target(
             name: "home_widget",
             dependencies: [
+                "home_widget_swift",
                 .product(name: "FlutterFramework", package: "FlutterFramework")
             ],
             cSettings: [
