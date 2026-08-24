@@ -131,3 +131,7 @@ app.*.symbols
 
 # don't check in golden failure output
 **/failures/*.png
+
+# Swift Package Manager
+.build/
+.swiftpm/
