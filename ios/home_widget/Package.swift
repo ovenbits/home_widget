@@ -1,0 +1,33 @@
+// swift-tools-version: 5.9
+import PackageDescription
+
+let package = Package(
+    name: "home_widget",
+    platforms: [
+        .iOS("13.0")
+    ],
+    products: [
+        .library(name: "home-widget", targets: ["home_widget"])
+    ],
+    dependencies: [
+        .package(name: "FlutterFramework", path: "../FlutterFramework")
+    ],
+    targets: [
+        .target(
+            name: "home_widget_swift",
+            dependencies: [
+                .product(name: "FlutterFramework", package: "FlutterFramework")
+            ]
+        ),
+        .target(
+            name: "home_widget",
+            dependencies: [
+                "home_widget_swift",
+                .product(name: "FlutterFramework", package: "FlutterFramework")
+            ],
+            cSettings: [
+                .headerSearchPath("include/home_widget")
+            ]
+        )
+    ]
+)

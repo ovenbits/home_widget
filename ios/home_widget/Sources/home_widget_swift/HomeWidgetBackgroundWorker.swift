@@ -59,7 +59,7 @@ public struct HomeWidgetBackgroundWorker {
     if registerPlugins != nil {
       registerPlugins?(engine!)
     } else {
-      HomeWidgetPlugin.register(with: engine!.registrar(forPlugin: "home_widget")!)
+      SwiftHomeWidgetPlugin.register(with: engine!.registrar(forPlugin: "home_widget")!)
     }
 
     channel?.setMethodCallHandler(handle)
